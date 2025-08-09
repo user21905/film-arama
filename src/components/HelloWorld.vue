@@ -260,30 +260,7 @@ export default {
         
         // Türkçe çevirileri kontrol et ve uygula
         const moviesWithTranslations = await Promise.all(
-          response.data.results.map(async (movie) => {
-            try {
-              // Her film için ayrı detay isteği yap
-              const detailResponse = await axios.get(`https://api.themoviedb.org/3/movie/${movie.id}?api_key=8c247ea0b4b56ed2ff7d41c9a833aa77&language=tr-TR&region=TR&append_to_response=translations`);
-              const translations = detailResponse.data.translations?.translations || [];
-              const turkishTranslation = translations.find(t => t.iso_639_1 === 'tr');
-              
-              if (turkishTranslation && turkishTranslation.data.title) {
-                movie.title = turkishTranslation.data.title;
-                console.log(`Film ${movie.id} Türkçe başlık uygulandı: ${movie.title}`);
-              } else {
-                console.log(`Film ${movie.id} Türkçe başlık bulunamadı, orijinal: ${movie.title}`);
-              }
-              
-              if (turkishTranslation && turkishTranslation.data.overview) {
-                movie.overview = turkishTranslation.data.overview;
-              }
-              
-              return movie;
-            } catch (error) {
-              console.error(`Film ${movie.id} çevirisi alınırken hata:`, error);
-              return movie;
-            }
-          })
+          response.data.results.map(movie => this.applyTurkishTranslation(movie))
         );
         
         this.movies = moviesWithTranslations;
@@ -316,30 +293,7 @@ export default {
         
         // Türkçe çevirileri kontrol et ve uygula
         const moviesWithTranslations = await Promise.all(
-          response.data.results.map(async (movie) => {
-            try {
-              // Her film için ayrı detay isteği yap
-              const detailResponse = await axios.get(`https://api.themoviedb.org/3/movie/${movie.id}?api_key=8c247ea0b4b56ed2ff7d41c9a833aa77&language=tr-TR&region=TR&append_to_response=translations`);
-              const translations = detailResponse.data.translations?.translations || [];
-              const turkishTranslation = translations.find(t => t.iso_639_1 === 'tr');
-              
-              if (turkishTranslation && turkishTranslation.data.title) {
-                movie.title = turkishTranslation.data.title;
-                console.log(`Film ${movie.id} Türkçe başlık uygulandı: ${movie.title}`);
-              } else {
-                console.log(`Film ${movie.id} Türkçe başlık bulunamadı, orijinal: ${movie.title}`);
-              }
-              
-              if (turkishTranslation && turkishTranslation.data.overview) {
-                movie.overview = turkishTranslation.data.overview;
-              }
-              
-              return movie;
-            } catch (error) {
-              console.error(`Film ${movie.id} çevirisi alınırken hata:`, error);
-              return movie;
-            }
-          })
+          response.data.results.map(movie => this.applyTurkishTranslation(movie))
         );
         
         this.movies = moviesWithTranslations;
@@ -399,30 +353,7 @@ export default {
         
         // Türkçe çevirileri kontrol et ve uygula
         const moviesWithTranslations = await Promise.all(
-          response.data.results.map(async (movie) => {
-            try {
-              // Her film için ayrı detay isteği yap
-              const detailResponse = await axios.get(`https://api.themoviedb.org/3/movie/${movie.id}?api_key=8c247ea0b4b56ed2ff7d41c9a833aa77&language=tr-TR&region=TR&append_to_response=translations`);
-              const translations = detailResponse.data.translations?.translations || [];
-              const turkishTranslation = translations.find(t => t.iso_639_1 === 'tr');
-              
-              if (turkishTranslation && turkishTranslation.data.title) {
-                movie.title = turkishTranslation.data.title;
-                console.log(`Film ${movie.id} Türkçe başlık uygulandı: ${movie.title}`);
-              } else {
-                console.log(`Film ${movie.id} Türkçe başlık bulunamadı, orijinal: ${movie.title}`);
-              }
-              
-              if (turkishTranslation && turkishTranslation.data.overview) {
-                movie.overview = turkishTranslation.data.overview;
-              }
-              
-              return movie;
-            } catch (error) {
-              console.error(`Film ${movie.id} çevirisi alınırken hata:`, error);
-              return movie;
-            }
-          })
+          response.data.results.map(movie => this.applyTurkishTranslation(movie))
         );
         
         this.movies = moviesWithTranslations;
@@ -480,30 +411,7 @@ export default {
         
         // Türkçe çevirileri kontrol et ve uygula
         const moviesWithTranslations = await Promise.all(
-          response.data.results.map(async (movie) => {
-            try {
-              // Her film için ayrı detay isteği yap
-              const detailResponse = await axios.get(`https://api.themoviedb.org/3/movie/${movie.id}?api_key=8c247ea0b4b56ed2ff7d41c9a833aa77&language=tr-TR&region=TR&append_to_response=translations`);
-              const translations = detailResponse.data.translations?.translations || [];
-              const turkishTranslation = translations.find(t => t.iso_639_1 === 'tr');
-              
-              if (turkishTranslation && turkishTranslation.data.title) {
-                movie.title = turkishTranslation.data.title;
-                console.log(`Film ${movie.id} Türkçe başlık uygulandı: ${movie.title}`);
-              } else {
-                console.log(`Film ${movie.id} Türkçe başlık bulunamadı, orijinal: ${movie.title}`);
-              }
-              
-              if (turkishTranslation && turkishTranslation.data.overview) {
-                movie.overview = turkishTranslation.data.overview;
-              }
-              
-              return movie;
-            } catch (error) {
-              console.error(`Film ${movie.id} çevirisi alınırken hata:`, error);
-              return movie;
-            }
-          })
+          response.data.results.map(movie => this.applyTurkishTranslation(movie))
         );
         
         this.movies = [...this.movies, ...moviesWithTranslations];
@@ -545,6 +453,50 @@ export default {
     
     getPosterUrl(posterPath) {
       return `https://image.tmdb.org/t/p/w500${posterPath}`;
+    },
+    
+    // Türkçe çeviri helper metodu
+    async applyTurkishTranslation(movie) {
+      try {
+        const detailResponse = await axios.get(`https://api.themoviedb.org/3/movie/${movie.id}?api_key=8c247ea0b4b56ed2ff7d41c9a833aa77&language=tr-TR&region=TR&append_to_response=translations`);
+        const translations = detailResponse.data.translations?.translations || [];
+        const turkishTranslation = translations.find(t => t.iso_639_1 === 'tr');
+        
+        // Türkçe başlık kontrolü
+        if (turkishTranslation && turkishTranslation.data.title) {
+          movie.title = turkishTranslation.data.title;
+          console.log(`Film ${movie.id} Türkçe başlık uygulandı: ${movie.title}`);
+        } else if (detailResponse.data.title) {
+          // Ana API response'dan Türkçe başlık varsa kullan
+          movie.title = detailResponse.data.title;
+          console.log(`Film ${movie.id} ana API'den başlık alındı: ${movie.title}`);
+        } else {
+          console.log(`Film ${movie.id} Türkçe başlık bulunamadı, orijinal: ${movie.title}`);
+        }
+        
+        // Türkçe özet kontrolü - daha kapsamlı yaklaşım
+        if (turkishTranslation && turkishTranslation.data.overview) {
+          movie.overview = turkishTranslation.data.overview;
+          console.log(`Film ${movie.id} Türkçe özet uygulandı`);
+        } else if (detailResponse.data.overview) {
+          // Ana API response'dan overview al (Türkçe API çağrısı yaptığımız için zaten Türkçe olmalı)
+          movie.overview = detailResponse.data.overview;
+          console.log(`Film ${movie.id} ana API'den özet alındı`);
+        } else {
+          console.log(`Film ${movie.id} için özet bulunamadı`);
+          // Fallback olarak en azından bir mesaj koy
+          movie.overview = movie.overview || "Bu film için henüz özet bulunmuyor.";
+        }
+        
+        return movie;
+      } catch (error) {
+        console.error(`Film ${movie.id} çevirisi alınırken hata:`, error);
+        // Hata durumunda en azından overview eksikse placeholder ekle
+        if (!movie.overview) {
+          movie.overview = "Bu film için henüz özet bulunmuyor.";
+        }
+        return movie;
+      }
     },
     
     getPageTitle() {
