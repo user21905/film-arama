@@ -23,10 +23,24 @@
         <option v-for="genre in genres" :key="genre.id" :value="genre.id">{{ genre.name }}</option>
       </select>
       
-      <select v-model="selectedYear" @change="applyFilters" class="filter-select" :disabled="years.length === 0">
-        <option value="">{{ years.length === 0 ? 'Yıllar Yükleniyor...' : 'Tüm Yıllar' }}</option>
-        <option v-for="year in years" :key="year" :value="year">{{ year }}</option>
-      </select>
+      <!-- Yıl Aralığı Filtreleme -->
+      <div class="year-range-container">
+        <label class="year-range-label">Yıl Aralığı:</label>
+        <div class="year-range-inputs">
+          <select v-model="minYear" @change="applyFilters" class="filter-select year-select">
+            <option value="">En Az</option>
+            <option v-for="year in years" :key="year" :value="year">{{ year }}</option>
+          </select>
+          <span class="year-separator">-</span>
+          <select v-model="maxYear" @change="applyFilters" class="filter-select year-select">
+            <option value="">En Çok</option>
+            <option v-for="year in years" :key="year" :value="year">{{ year }}</option>
+          </select>
+        </div>
+        <div v-if="yearRangeError" class="year-range-error">
+          {{ yearRangeError }}
+        </div>
+      </div>
       
       <select v-model="selectedRating" @change="applyFilters" class="filter-select" :disabled="ratings.length === 0">
         <option value="">{{ ratings.length === 0 ? 'Puanlar Yükleniyor...' : 'Tüm Puanlar' }}</option>
@@ -161,8 +175,12 @@ export default {
       favoriteCounts: {}, // filmId: count
       // Filtreleme için yeni değişkenler
       selectedGenre: "",
-      selectedYear: "",
+      selectedYear: "", // Eski tek yıl seçimi (API uyumluluğu için korunuyor)
       selectedRating: "",
+      // Yıl aralığı filtreleme için yeni değişkenler
+      minYear: "",
+      maxYear: "",
+      yearRangeError: "",
       genres: [],
       years: [],
       ratings: [],
@@ -185,7 +203,20 @@ export default {
         );
       }
       
-      // Yıl filtresi
+      // Yıl aralığı filtresi (yeni)
+      if (this.minYear || this.maxYear) {
+        filtered = filtered.filter(movie => {
+          if (!movie.release_date) return false;
+          
+          const movieYear = parseInt(movie.release_date.substring(0, 4));
+          const minYearInt = this.minYear ? parseInt(this.minYear) : 0;
+          const maxYearInt = this.maxYear ? parseInt(this.maxYear) : 9999;
+          
+          return movieYear >= minYearInt && movieYear <= maxYearInt;
+        });
+      }
+      
+      // Eski tek yıl filtresi (API uyumluluğu için korunuyor)
       if (this.selectedYear) {
         filtered = filtered.filter(movie => 
           movie.release_date && movie.release_date.startsWith(this.selectedYear)
@@ -324,7 +355,15 @@ export default {
     },
     
     async applyFilters() {
-      if (!this.selectedGenre && !this.selectedYear && !this.selectedRating) {
+      // Yıl aralığı validasyonu
+      this.yearRangeError = "";
+      if (this.minYear && this.maxYear && parseInt(this.minYear) > parseInt(this.maxYear)) {
+        this.yearRangeError = "Başlangıç yılı bitiş yılından büyük olamaz!";
+        return;
+      }
+      
+      // Hiçbir filtre seçili değilse popüler filmleri göster
+      if (!this.selectedGenre && !this.selectedYear && !this.selectedRating && !this.minYear && !this.maxYear) {
         this.movies = this.popularMovies;
         this.lastQueryType = 'popular';
         this.lastQuery = '';
@@ -338,9 +377,20 @@ export default {
         if (this.selectedGenre) {
           url += `&with_genres=${this.selectedGenre}`;
         }
-        if (this.selectedYear) {
+        
+        // Yıl aralığı parametreleri (yeni sistem)
+        if (this.minYear) {
+          url += `&primary_release_date.gte=${this.minYear}-01-01`;
+        }
+        if (this.maxYear) {
+          url += `&primary_release_date.lte=${this.maxYear}-12-31`;
+        }
+        
+        // Eski tek yıl sistemi (yıl aralığı yoksa kullanılır)
+        if (this.selectedYear && !this.minYear && !this.maxYear) {
           url += `&primary_release_year=${this.selectedYear}`;
         }
+        
         if (this.selectedRating) {
           url += `&vote_average.gte=${this.selectedRating}`;
         }
@@ -391,6 +441,10 @@ export default {
       this.selectedGenre = "";
       this.selectedYear = "";
       this.selectedRating = "";
+      // Yıl aralığı değişkenlerini de temizle
+      this.minYear = "";
+      this.maxYear = "";
+      this.yearRangeError = "";
       this.currentPage = 1;
       await this.fetchPopularMovies();
     },
@@ -411,7 +465,14 @@ export default {
         } else if (this.lastQueryType === 'filter') {
                       url = `https://api.themoviedb.org/3/discover/movie?api_key=8c247ea0b4b56ed2ff7d41c9a833aa77&language=tr-TR&region=TR&page=${this.currentPage}`;
           if (this.selectedGenre) url += `&with_genres=${this.selectedGenre}`;
-          if (this.selectedYear) url += `&primary_release_year=${this.selectedYear}`;
+          
+          // Yıl aralığı parametreleri (loadMore için)
+          if (this.minYear) url += `&primary_release_date.gte=${this.minYear}-01-01`;
+          if (this.maxYear) url += `&primary_release_date.lte=${this.maxYear}-12-31`;
+          
+          // Eski tek yıl sistemi (yıl aralığı yoksa kullanılır)
+          if (this.selectedYear && !this.minYear && !this.maxYear) url += `&primary_release_year=${this.selectedYear}`;
+          
           if (this.selectedRating) url += `&vote_average.gte=${this.selectedRating}`;
         }
         
@@ -489,8 +550,19 @@ export default {
     getPageTitle() {
       if (this.search.trim()) {
         return 'Arama Sonuçları';
-      } else if (this.selectedGenre || this.selectedYear || this.selectedRating) {
-        return 'Filtrelenmiş Sonuçlar';
+      } else if (this.selectedGenre || this.selectedYear || this.selectedRating || this.minYear || this.maxYear) {
+        let title = 'Filtrelenmiş Sonuçlar';
+        
+        // Yıl aralığı bilgisini başlığa ekle
+        if (this.minYear && this.maxYear) {
+          title += ` (${this.minYear}-${this.maxYear})`;
+        } else if (this.minYear) {
+          title += ` (${this.minYear}+)`;
+        } else if (this.maxYear) {
+          title += ` (-${this.maxYear})`;
+        }
+        
+        return title;
       } else {
         return 'Öne Çıkanlar';
       }
@@ -721,6 +793,81 @@ export default {
 .filter-select:hover {
   border-color: #64b5f6;
   background: #3a3a4e;
+}
+
+/* Yıl Aralığı Stillers */
+.year-range-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 1rem;
+  border-radius: 12px;
+  border: 1px solid rgba(100, 181, 246, 0.2);
+}
+
+.year-range-label {
+  color: #64b5f6;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 0.3rem;
+}
+
+.year-range-inputs {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.year-select {
+  min-width: 100px;
+  padding: 0.6rem 0.8rem;
+  font-size: 0.85rem;
+}
+
+.year-separator {
+  color: #64b5f6;
+  font-weight: bold;
+  font-size: 1.2rem;
+  padding: 0 0.3rem;
+}
+
+.year-range-error {
+  color: #e63946;
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-align: center;
+  background: rgba(230, 57, 70, 0.1);
+  padding: 0.3rem 0.6rem;
+  border-radius: 6px;
+  border: 1px solid rgba(230, 57, 70, 0.3);
+  animation: shake 0.5s ease-in-out;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+}
+
+/* Responsive design için */
+@media (max-width: 768px) {
+  .year-range-container {
+    width: 100%;
+  }
+  
+  .year-range-inputs {
+    flex-direction: column;
+    gap: 0.3rem;
+  }
+  
+  .year-separator {
+    transform: rotate(90deg);
+    font-size: 1rem;
+  }
 }
 
 .clear-filters-btn {
